@@ -504,10 +504,6 @@ void repulseTiles(){
         float lengthToMoon = STPoint3::Dist(*moonPoint, *pos_pt);
         float repulsion = moon_repulsion - lengthToMoon;
 
-//        std::cout << *pos_pt << std::endl;
-//        std::cout << *moonPoint << std::endl;
-//        std::cout << repulsion << std::endl;
-
         if (repulsion > 0){
             pos->y -= repulsion * moon_repulsion_factor;
         } else {
@@ -527,10 +523,9 @@ void setupScene()
 
     repulseTiles();
     positionTiles();
-
-
-
 }
+
+
 //
 // Initialize the application, loading all of the settings that
 // we will be accessing later in our fragment shaders.
