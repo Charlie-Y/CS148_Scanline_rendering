@@ -1,0 +1,12 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl Material
+Ns 96.078431
+Ka .1 .1 .1
+Kd 0.00000 0.2 .2
+Ks 0.500000 0.100000 0.100000
+Ni 1.000000
+d .300000
+illum 2
+map_Kd ../images/cube_solid.png
