@@ -31,21 +31,7 @@ void main()
     
     normal = gl_Normal.xyz;
 	modelPos = gl_Vertex.xyz;
-    vec3 S=vec3(1,0,0);
-    vec3 T=cross(S,normal);
-    if(displacementMapping > 0.0){
-        normal = normalize(normal);
-        float delta_uv=1.0/TesselationDepth;
-        float scale=0.5;
-        float center=texture2D(displacementTex, texPos).x*scale;
-        float hu_plus=texture2D(displacementTex, clamp(texPos+vec2(delta_uv,0),0.0,1.0)).x*scale;
-        float hu_minus=texture2D(displacementTex, clamp(texPos+vec2(-delta_uv,0),0.0,1.0)).x*scale;
-        float hv_plus=texture2D(displacementTex, clamp(texPos+vec2(0,delta_uv),0.0,1.0)).x*scale;
-        float hv_minus=texture2D(displacementTex, clamp(texPos+vec2(0,-delta_uv),0.0,1.0)).x*scale;
-        modelPos = modelPos + center*normal;
-        normal=normal-S*(hu_plus-hu_minus)/(2.0*delta_uv)-T*(hv_plus-hv_minus)/(2.0*delta_uv);
-    }//
-    
+
     // Render the shape using modified position.
     gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix *  vec4(modelPos,1);
     

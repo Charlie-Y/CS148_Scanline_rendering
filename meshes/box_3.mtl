@@ -1,14 +1,13 @@
-# Blender MTL File: 'None'
-# Material Count: 1
+# SPIRE tile first
 
 newmtl Material
 Ns 96.078431
-Ka 0.300000 0.300000 0.300000
+Ka .3 .3 .3
 Kd 0.20000 0.20000 0.20000
 Ks 0.200000 0.200000 0.200000
 Ni 1.000000
 d 1.000000
 illum 2
-#map_Kd ../images/tile_2.png
+#map_Kd ../images/metal_2.jpg
 map_Kd ../images/single_stripe.png
 

@@ -43,6 +43,7 @@ static float specularLight1[] = {.10, .10, .100, 1.0};
 // Spire Lights
 static float ambientLight_spire[]  = {0, 0, 0, 1.0};
 static float diffuseLight_spire[]  = {0, .8, 1, 1.0};
+//static float specularLight_spire[] = {0,0,0,0};
 static float specularLight_spire[] = {.300, .300, .300, 1.0};
 
 //static float lightPosition2[] = {-100.7924, -4, 0.772084, 1.0f};
@@ -136,7 +137,7 @@ void SceneLights::setupLights()
             glLightf(light, GL_LINEAR_ATTENUATION, 1.0/30.0);
         } else {
             glLightf(light, GL_CONSTANT_ATTENUATION, 0.0);
-            glLightf(light, GL_LINEAR_ATTENUATION, 1.0/40.0);
+            glLightf(light, GL_LINEAR_ATTENUATION, 1/50.0);
         }
     }
 

@@ -61,7 +61,7 @@ std::pair<STPoint3,STPoint3> gBoundingBox;
 STTriangleMesh* gManualTriangleMesh = 0;
 int TesselationDepth = 100;
 
-int SOME_SEED = 10;
+int SOME_SEED = 8;
 
 //Nice reference ground
 bool DRAW_GROUND = true;
@@ -82,11 +82,13 @@ const std::string MOON_CYL_MESH_STR = "meshes/cylinder.obj";
 const std::string MOON_MESH_STR = "meshes/sphere_fine.obj";
 const std::string SKYBOX_MESH_STR = "meshes/sphere_fine.obj";
 
-const std::string TILE_MESH_STRS[] = {"box_1.obj", "box_2.obj", "box_3.obj", "box_4.obj"};
-const int TILE_MESH_CT = 4;
+const std::string TILE_MESH_STRS[] = {"box_1.obj", "box_2.obj", "box_3.obj", "box_4.obj", "spire_thick.obj", "spire_thin.obj", "spire_diag_zag.obj", "spire_flat_zag.obj"};
+const int TILE_MESH_CT = 8;
 
 enum TileType { BASIC_TILE, FLYER_TILE, ROAD_TILE, SPIRE_TILE};
-enum TileMeshIndex { ROAD_TILE_MESH = 0, BLANK_TILE_MESH = 1, SPIRE_TILE_MESH = 2, FLYER_TILE_MESH = 3 };
+enum TileMeshIndex { ROAD_TILE_MESH = 0, BLANK_TILE_MESH = 1, SPIRE_TILE_MESH = 2, FLYER_TILE_MESH = 3, SPIRE_1_MESH = 4, SPIRE_2_MESH = 5, SPIRE_3_MESH = 6, SPIRE_4_MESH = 7};
+
+const int SPIRE_TYPES = 4;
 
 // Tile mesh and positioning stuff
 std::vector<STVector3*> tilePositions;
@@ -341,7 +343,24 @@ STTriangleMesh *getTileMesh(TileType type, int i){
         case FLYER_TILE:
             return gTriangleMeshes[ FLYER_TILE_MESH ];
         case SPIRE_TILE:
-            return gTriangleMeshes[ SPIRE_TILE_MESH];
+            long seed = randSeeds[i];
+            TileMeshIndex mesh = SPIRE_1_MESH;
+            switch (seed % 4) {
+                case 0:
+                    mesh = SPIRE_1_MESH;
+                    break;
+                case 1:
+                    mesh = SPIRE_3_MESH;
+                    break;
+                case 2:
+                    mesh = SPIRE_3_MESH;
+                    break;
+                case 3:
+                    mesh = SPIRE_4_MESH;
+                    break;
+            }
+
+            return gTriangleMeshes[ mesh ];
     }
     return gTriangleMeshes[BLANK_TILE_MESH];
 }
@@ -574,6 +593,7 @@ void Setup()
 
 // Draw center sphere
 void drawCenter(){
+//    return ;
     glPushMatrix();
     glTranslatef(moonPos->x, moonPos->y, moonPos->z);
     // Should be unit cube meshes
@@ -597,9 +617,11 @@ void drawCenter(){
 void drawTileByType(TileType type, int i){
     auto pos = tilePositions[i];
     float randScale, randAngle, randX, randZ;
+    bool tileSmooth = smooth;
     STTriangleMesh *mesh;
     mesh = getTileMesh(type, i);
     long seed = randSeeds[i];
+
 
     glPushMatrix();
     switch (type){
@@ -618,12 +640,21 @@ void drawTileByType(TileType type, int i){
             glTranslatef(pos->x, 0, pos->z);
 
 
-            randZ = randRangeFromSeed(.8, 1.2, seed);
-            randX = randRangeFromSeed(.8, 1.2, seed);
-            glScalef( randX, 100, randZ);
+//            glScalef(-1, 1, 1);
+//            randZ = randRangeFromSeed(2, 5.2, seed);
+            randX = randRangeFromSeed(.8, 2.2, seed);
+            glScalef( randX, 3, 2);
 
-            randAngle = randRangeFromSeed(0,90, seed);
+            if (pos->x <= 0) {
+                randAngle = -30;
+            } else {
+                randAngle = 30;
+            }
+
+//            randAngle = randRangeFromSeed(0,90, seed);
             glRotatef(randAngle, 0, 1, 0);
+//
+
             break;
 
         case FLYER_TILE:
@@ -633,7 +664,7 @@ void drawTileByType(TileType type, int i){
     }
 
 
-    mesh->Draw(smooth);
+    mesh->Draw(tileSmooth);
     glPopMatrix();
 }
 
@@ -671,26 +702,26 @@ void drawGround(){
 
 void drawScene()
 {
-    shader->SetUniform("normalFlipping", -1.0);
-    shader->SetUniform("normalMapping", 1.0);
-    shader->SetUniform("displacementMapping", -1.0);
-    shader->SetUniform("colorMapping", -1.0);
 
-//    drawSkyBox();
 
     shader->SetUniform("normalMapping", -1.0);
     shader->SetUniform("displacementMapping", -1.0);
-    shader->SetUniform("colorMapping", 1.0);
 
 
-    drawGround();
+//    for (int i = 0; i< 4; i++){
+//        STVector3 *shift = new STVector3((i % 2) * 0.5 / gWindowSizeX, (i / 2) * 0.5 / gWindowSizeY, 0);
 
-    drawTiles();
-    shader->SetUniform("normalFlipping", 1.0);
-    drawCenter();
 
-    shader->SetUniform("normalFlipping", -1.0);
+        shader->SetUniform("colorMapping", 1.0);
 
+        drawGround();
+
+        drawTiles();
+        shader->SetUniform("normalFlipping", 1.0);
+        drawCenter();
+        
+        shader->SetUniform("normalFlipping", -1.0);
+//    }
 }
 
 

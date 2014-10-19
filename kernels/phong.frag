@@ -72,6 +72,7 @@ void main()
         vec3 colorDiffuse = clamp(max(dot(Lm,N),0.0)*materialDiffuse*lightDiffuse,0.0,1.0);
         vec3 colorSpecular = clamp(pow(max(dot(Rm,V),0.0),shininess)*materialSpecular*lightSpecular,0.0,1.0);
 
+
         att = 1.0 / (gl_LightSource[i].constantAttenuation + gl_LightSource[i].linearAttenuation * dist +                     gl_LightSource[i].quadraticAttenuation * dist * dist);
 
         color += (colorAmbient) + att* colorDiffuse + att * colorSpecular;
