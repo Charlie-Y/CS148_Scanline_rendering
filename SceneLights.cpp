@@ -180,6 +180,3 @@ int SceneLights::addLight(){
 
 
 
-#include <stdio.h>
-#include <string.h>
-

@@ -3,7 +3,7 @@
 
 newmtl thick
 Ns 96.078431
-Ka .1 .1 .1
+Ka 1 1 1
 Kd 0.640000 0.640000 0.640000
 Ks 0.500000 0.500000 0.500000
 Ni 1.000000
@@ -13,7 +13,7 @@ map_Kd ../images/spire_stripe_thick_r.png
 
 newmtl thin
 Ns 96.078431
-Ka .1 .1 .1
+Ka 1 1 1
 Kd 0.640000 0.640000 0.640000
 Ks 0.500000 0.500000 0.500000
 Ni 1.000000
@@ -23,7 +23,7 @@ map_Kd ../images/spire_stripe_thin_r.png
 
 newmtl diag_zag
 Ns 96.078431
-Ka .1 .1 .1
+Ka 1 1 1
 Kd 0.640000 0.640000 0.640000
 Ks 0.500000 0.500000 0.500000
 Ni 1.000000
@@ -33,7 +33,7 @@ map_Kd ../images/stripe_diag_zag_r.png
 
 newmtl flat_zag
 Ns 96.078431
-Ka .1 .1 .1
+Ka 1 1 1
 Kd 0.640000 0.640000 0.640000
 Ks 0.500000 0.500000 0.500000
 Ni 1.000000

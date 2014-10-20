@@ -617,10 +617,6 @@ void drawCenter(){
     glPopMatrix();
 }
 
-
-
-
-
 // Draws the tile into the scene.
 void drawTileByType(TileType type, int i){
     auto pos = tilePositions[i];
@@ -724,40 +720,40 @@ void drawGlowMapDummy(int texId){
     }
 }
 
-void drawGlowmap(){
-    // Draw only the road tiles for now...
-    for (int i = 0; i < tilePositions.size(); i++){
-        TileType tileType = getTileType(i);
-        switch (tileType) {
-            case ROAD_TILE:
-            case SPIRE_TILE:
-                drawTileByType(tileType, i);
-                break;
-            default:
-                break;
-        }
-    }
-
-    // Then draw the moon
-    drawCenter();
-}
-
 void drawScene()
 {
 
 
-    shader->SetUniform("normalMapping", -1.0);
-    shader->SetUniform("displacementMapping", -1.0);
     shader->SetUniform("colorMapping", 1.0);
 
     drawGround();
+    drawTiles();
 
-//    drawTiles();
     shader->SetUniform("normalFlipping", 1.0);
     drawCenter();
-
     shader->SetUniform("normalFlipping", -1.0);
 
+}
+
+void drawGlowmap(){
+    // Draw only the road tiles for now...
+    //    for (int i = 0; i < tilePositions.size(); i++){
+    //        TileType tileType = getTileType(i);
+    //        switch (tileType) {
+    //            case ROAD_TILE:
+    //            case SPIRE_TILE:
+    //                drawTileByType(tileType, i);
+    //                break;
+    //            default:
+    //                break;
+    //        }
+    //    }
+
+
+    // Then draw the moon
+    //    drawCenter();
+    
+    drawScene();
 }
 
 // Display the output image from our vertex and fragment shaders
@@ -790,8 +786,10 @@ void DisplayCallback()
     // For the vertex shader...
     shader->SetUniform("fullScreenQuad", -1.0);
     shader->SetUniform("glowMapping", -1.0);
+    shader->SetUniform("colorMapping", 1.0);
     shader->SetUniform("blur", -1.0);
     shader->SetUniform("blurV", -1.0);
+    shader->SetUniform("blend", -1.0);
 
 
     if(!glow){
@@ -812,7 +810,8 @@ void DisplayCallback()
         if (!glowMapDrawn){
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBOGlow);
 
-            glClearColor(0,0,0,1.0f);
+//            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClearColor(0,0,0,0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             // Set Drawing buffers
@@ -820,6 +819,7 @@ void DisplayCallback()
             glDrawBuffers(1,  attachments);
 
             shader->SetUniform("glowMapping", 1.0);
+            //needs to be only the lights
             drawGlowmap();
             glowMapDrawn = true;
             shader->SetUniform("glowMapping", -1.0);
@@ -853,11 +853,23 @@ void DisplayCallback()
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        drawScene();
+        glEnable(GL_DEPTH_TEST);
+        drawScene();
+
 //        drawGlowmap();
 //        drawGlowMapDummy(fboHorizInd);
 //        drawGlowMapDummy(fboGlowInd);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+
+        // needs to be drawn with alpha
+        shader->SetUniform("blend", 1.0);
         drawGlowMapDummy(fboVertInd);
+
+
+        glDisable(GL_BLEND);
 
     }
     

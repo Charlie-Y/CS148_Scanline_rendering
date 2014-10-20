@@ -13,8 +13,9 @@ uniform float glowMapping;
 uniform float fullScreenQuad;
 uniform float blur;
 uniform float blurV;
+uniform float blend;
 
-const float blurSize = 1.0/500.0;
+const float blurSize = 1.0/512.0;
 
 varying vec3 modelPos;    // fragment position in model space
 varying vec2 texPos;      // fragment position in texture space
@@ -34,7 +35,6 @@ void main()
     vec3 color;
 
     if (fullScreenQuad > 0.0){
-
         if (blur > 0.0){
             vec4 sum = vec4(0.0);
             if (blurV > 0.0){
@@ -60,14 +60,19 @@ void main()
                 sum += texture2D(colorTex, vec2(texPos.x, texPos.y + 3.0*blurSize)) * 0.09;
                 sum += texture2D(colorTex, vec2(texPos.x, texPos.y + 4.0*blurSize)) * 0.05;
             }
-//            return;
-//            gl_FragColor = clamp(sum, 0.0, 1.0);
+            //            return;
+            //            gl_FragColor = clamp(sum, 0.0, 1.0);
             gl_FragColor = sum;
             return;
         } else {
             color = gl_FrontMaterial.ambient.xyz*texture2D(colorTex, texPos).xyz;
             color = clamp(color, 0.0, 1.0);
-            gl_FragColor = vec4(color, 1.0);
+            if (blend > 0.0){
+                //                gl_FragColor = vec4(1.0, 0, 0, 1.0);
+                gl_FragColor = vec4(color, .01);
+            } else {
+                gl_FragColor = vec4(color, 1.0);
+            }
             return;
         }
     }
@@ -122,20 +127,41 @@ void main()
         colorDiffuse = clamp(max(dot(Lm,N),0.0)*materialDiffuse*lightDiffuse,0.0,1.0);
         colorSpecular = clamp(pow(max(dot(Rm,V),0.0),shininess)*materialSpecular*lightSpecular,0.0,1.0);
         if (glowMapping < 0.0){
-            att = 1.0 / (gl_LightSource[i].constantAttenuation + gl_LightSource[i].linearAttenuation * dist +                     gl_LightSource[i].quadraticAttenuation * dist * dist);
-
+            att = 1.0 / (gl_LightSource[i].constantAttenuation + gl_LightSource[i].linearAttenuation * dist + gl_LightSource[i].quadraticAttenuation * dist * dist);
             color += (colorAmbient) + att* colorDiffuse + att * colorSpecular;
-        } else {
-            color += colorAmbient;
-//            color += colorAmbient + colorDiffuse + colorSpecular;
-        }
 
-        //        color += (colorAmbient) + (colorDiffuse / dist) + (colorSpecular/dist);
-        //                color += (colorAmbient * 1.0/d) + (colorDiffuse * 1.0/d) + (colorSpecular * 1.0/d);
-        //                color += colorAmbient + colorDiffuse + colorSpecular;
+        } else {
+            // I need to filter out the darker colors...
+//            color += colorAmbient + colorDiffuse;
+            color += colorAmbient + colorDiffuse + colorSpecular;
+
+        }
     }
 
-    color = clamp(color, 0.0, 1.0);
-    gl_FragColor = vec4(color, 1.0);
+    if (glowMapping < 0.0){
+        color = clamp(color, 0.0, 1.0);
+        gl_FragColor = vec4(color, 1.0);
+    } else {
+        // IF glowmapping
+        vec3 dark = vec3(.4,.4,.4);
+        vec3 white = vec3(.99, .99, .99);
+        color = clamp(color, 0.0, 1.0);
+        if (length(color) < length(dark)){
+            // alpha out all the things we don't want
+            color = vec3(0,0,0);
+            gl_FragColor = vec4(0,0,0,0);
+        } else {
+            color = clamp(color, 1.0, 1.0);
+            gl_FragColor = vec4(color, 1.0);
+        }
+    }
 
+
+    //        color += (colorAmbient) + (colorDiffuse / dist) + (colorSpecular/dist);
+    //                color += (colorAmbient * 1.0/d) + (colorDiffuse * 1.0/d) + (colorSpecular * 1.0/d);
+    //                color += colorAmbient + colorDiffuse + colorSpecular;
+    
+    
+    
+    
 }

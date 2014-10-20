@@ -52,6 +52,7 @@
 		2F93BD9619ECD54F00F68A49 /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; path = images; sourceTree = "<group>"; };
 		2FA4494E19F32207004C3C6D /* SceneTiles.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SceneTiles.cpp; sourceTree = "<group>"; };
 		2FA4494F19F32207004C3C6D /* SceneTiles.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SceneTiles.h; sourceTree = "<group>"; };
+		2FAE749019F4F98F001B675C /* normal_phong.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = normal_phong.frag; sourceTree = "<group>"; };
 		2FC8386B19F03C43000EAD44 /* main_back */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main_back; sourceTree = "<group>"; };
 		2FC8386C19F09268000EAD44 /* SceneLights.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SceneLights.cpp; sourceTree = "<group>"; };
 		2FC8386D19F09268000EAD44 /* SceneLights.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SceneLights.h; sourceTree = "<group>"; };
@@ -119,6 +120,7 @@
 			children = (
 				2F24CBED19EB404D0016C302 /* default.vert */,
 				2F24CBEE19EB404D0016C302 /* phong.frag */,
+				2FAE749019F4F98F001B675C /* normal_phong.frag */,
 			);
 			path = kernels;
 			sourceTree = "<group>";
