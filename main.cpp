@@ -695,7 +695,7 @@ void drawTileByType(TileType type, int i){
             randScale = randRangeFromSeed(.8, 2, randSeeds[i]) * (TILE_DIM - TILE_SPACING) / 7.0 ;
 //            randScale = 1.0/7.0;
             glScalef( randScale , 1 , randScale );
-            glTranslatef(0, pos->y , 0);
+            glTranslatef(0, pos->y + randRangeFromSeed(1, 2, randSeeds[i]) , 0);
             glScalef( 1 , randScale , 1 );
             break;
 
