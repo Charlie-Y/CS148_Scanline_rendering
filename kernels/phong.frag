@@ -15,7 +15,7 @@ uniform float blur;
 uniform float blurV;
 uniform float blend;
 
-const float blurSize = 1.0/512.0;
+const float blurSize = 1.0/600.0;
 
 varying vec3 modelPos;    // fragment position in model space
 varying vec2 texPos;      // fragment position in texture space
@@ -69,7 +69,7 @@ void main()
             color = clamp(color, 0.0, 1.0);
             if (blend > 0.0){
                 //                gl_FragColor = vec4(1.0, 0, 0, 1.0);
-                gl_FragColor = vec4(color, .01);
+                gl_FragColor = vec4(color, .1);
             } else {
                 gl_FragColor = vec4(color, 1.0);
             }
@@ -104,13 +104,15 @@ void main()
     color = vec3(0.0,0.0,0.0);
     for (int i = 0; i < 8; i++) {
         lightAmbient  = gl_LightSource[i].ambient.xyz;
+        lightDiffuse  = gl_LightSource[i].diffuse.xyz;
+        lightSpecular = gl_LightSource[i].specular.xyz;
 
         if (glowMapping > 0.0){
             lightAmbient  = vec3(1.0,1.0,1.0);
+//            lightDiffuse  = vec3(1,1,1);
+//            lightSpecular = vec3(1,1,1);
         }
 
-        lightDiffuse  = gl_LightSource[i].diffuse.xyz;
-        lightSpecular = gl_LightSource[i].specular.xyz;
 
         //        vec3 Lm = normalize(lightSourcePos-modelPos);
         Ld = gl_LightSource[i].position.xyz-modelPos;
@@ -132,8 +134,8 @@ void main()
 
         } else {
             // I need to filter out the darker colors...
-//            color += colorAmbient + colorDiffuse;
-            color += colorAmbient + colorDiffuse + colorSpecular;
+            color += colorAmbient;// + colorDiffuse;
+//            color += colorAmbient + colorDiffuse + colorSpecular;
 
         }
     }
@@ -143,7 +145,7 @@ void main()
         gl_FragColor = vec4(color, 1.0);
     } else {
         // IF glowmapping
-        vec3 dark = vec3(.4,.4,.4);
+        vec3 dark = vec3(.6,.6,.6);
         vec3 white = vec3(.99, .99, .99);
         color = clamp(color, 0.0, 1.0);
         if (length(color) < length(dark)){

@@ -77,7 +77,7 @@ const std::string SKYBOX_MESH_STR = "meshes/sphere_fine.obj";
 const std::string TILE_MESH_STRS[] = {"box_1.obj", "box_2.obj", "box_3.obj", "box_4.obj", "spire_thick.obj", "spire_thin.obj", "spire_diag_zag.obj", "spire_flat_zag.obj", "plane.obj"};
 const int TILE_MESH_CT = 9;
 
-enum TileType { BASIC_TILE, FLYER_TILE, ROAD_TILE, SPIRE_TILE};
+enum TileType { BASIC_TILE, FLYER_TILE, ROAD_TILE, SPIRE_TILE, MOON_FLYER_TILE};
 enum TileMeshIndex { ROAD_TILE_MESH = 0, BLANK_TILE_MESH = 1, SPIRE_TILE_MESH = 2, FLYER_TILE_MESH = 3, SPIRE_1_MESH = 4, SPIRE_2_MESH = 5, SPIRE_3_MESH = 6, SPIRE_4_MESH = 7, DUMMY_MESH = 8};
 
 const int SPIRE_TYPES = 4;
@@ -93,6 +93,7 @@ float xDropScale = .4;
 // Flyer stuff
 int chanceToFly = 20;
 bool noFlyers = true;
+static std::vector<bool> moonTileStatuses;
 
 // Tile Road stuff
 int roadWidth = 1;
@@ -108,10 +109,10 @@ static int SPIRE_Y = -4;
 static int SPIRE_COUNT = 6;
 static STPoint3 SPIRE_POS[6] = {
     STPoint3( 0 + SPIRE_X_OFF, SPIRE_Z, 0),
-    STPoint3(SPIRE_X + SPIRE_X_OFF, SPIRE_Z, 5),
+    STPoint3(SPIRE_X + SPIRE_X_OFF, SPIRE_Z, 10),
     STPoint3(-SPIRE_X + SPIRE_X_OFF, SPIRE_Z, -4),
     STPoint3(0 + SPIRE_X_OFF, -SPIRE_Z, 0),
-    STPoint3(SPIRE_X + SPIRE_X_OFF, -SPIRE_Z, 5),
+    STPoint3(SPIRE_X + SPIRE_X_OFF, -SPIRE_Z, 10),
     STPoint3(-SPIRE_X + SPIRE_X_OFF, -SPIRE_Z, -4),
 
 };
@@ -281,7 +282,11 @@ bool isGroundTile(int i){
 bool isFlyerTile(int i){
     if (noFlyers) return false;
     int seed = randSeeds[i];
-    return seed % 100 < 4;
+    return seed % 1000 < 12;
+}
+
+bool isMoonFlyerTile(int i){
+    return moonTileStatuses[i];
 }
 
 // Now are these tile positions or 3D locations...
@@ -334,7 +339,8 @@ TileType getTileType(int i){
     if (isSpireTile(i))
         return SPIRE_TILE;
 
-
+    if (isMoonFlyerTile(i))
+        return MOON_FLYER_TILE;
     if (isFlyerTile(i))
         return FLYER_TILE;
 
@@ -350,6 +356,12 @@ STTriangleMesh *getTileMesh(TileType type, int i){
             return gTriangleMeshes[ ROAD_TILE_MESH ];
         case FLYER_TILE:
             return gTriangleMeshes[ FLYER_TILE_MESH ];
+        case MOON_FLYER_TILE:
+            if (randSeeds[i]% 2 == 0){
+                return gTriangleMeshes[ FLYER_TILE_MESH ];
+            } else {
+                return gTriangleMeshes[ BLANK_TILE_MESH ];
+            }
         case SPIRE_TILE:
             long seed = randSeeds[i];
             TileMeshIndex mesh = SPIRE_1_MESH;
@@ -513,7 +525,14 @@ void positionTiles(){
             //racndom staircase fluc
             //            pos->y -= (float)(randSeeds[i] % 20) / 80.0;
             pos->y += 13;
+        } else if( getTileType(i) == MOON_FLYER_TILE){
+;
+            pos->y = moonPos->y ;
+            pos->x /= 4.5;
+            pos->x += moonPos->x / 1.2;
+            pos->z /= 6;
         }
+
     }
     // Cache if it is a spireTile or not
 
@@ -532,8 +551,15 @@ void repulseTiles(){
         float repulsion = moon_repulsion - lengthToMoon;
 
         if (repulsion > 0){
-            pos->y -= repulsion * moon_repulsion_factor;
+            if (randSeeds[i] % 1000 < 40){
+                moonTileStatuses.push_back(true);
+            } else {
+                pos->y -= repulsion * moon_repulsion_factor;
+                moonTileStatuses.push_back(false);
+            }
+
         } else {
+            moonTileStatuses.push_back(false);
 //            pos->y = tileStartY;
         }
     }
@@ -609,12 +635,12 @@ void drawCenter(){
     centerMoonMesh->Draw(smooth);
     glPopMatrix();
 
-    glPushMatrix();
-    glTranslatef(moon_pos2[0], moon_pos2[1], moon_pos2[2]);
-    // Should be unit cube meshes
-    glScalef(MOON_SCALE_2, MOON_SCALE_2, MOON_SCALE_2);
-    centerMoonMesh->Draw(smooth);
-    glPopMatrix();
+//    glPushMatrix();
+//    glTranslatef(moon_pos2[0], moon_pos2[1], moon_pos2[2]);
+//    // Should be unit cube meshes
+//    glScalef(MOON_SCALE_2, MOON_SCALE_2, MOON_SCALE_2);
+//    centerMoonMesh->Draw(smooth);
+//    glPopMatrix();
 }
 
 // Draws the tile into the scene.
@@ -654,17 +680,25 @@ void drawTileByType(TileType type, int i){
             } else {
                 randAngle = 30;
             }
-
 //            randAngle = randRangeFromSeed(0,90, seed);
             glRotatef(randAngle, 0, 1, 0);
-//
-
             break;
 
         case FLYER_TILE:
             glTranslatef(pos->x, pos->y + randRangeFromSeed(20, 40, randSeeds[i]), pos->z);
             randScale = randRangeFromSeed(.8, 3, randSeeds[i]) * (TILE_DIM - TILE_SPACING);
             glScalef( randScale /1.4, randScale /1.4, randScale /1.4);
+            break;
+        case MOON_FLYER_TILE:
+//            std::cout << pos->y << std::endl;
+            glTranslatef(pos->x , 0 , pos->z);
+            randScale = randRangeFromSeed(.8, 2, randSeeds[i]) * (TILE_DIM - TILE_SPACING) / 7.0 ;
+//            randScale = 1.0/7.0;
+            glScalef( randScale , 1 , randScale );
+            glTranslatef(0, pos->y , 0);
+            glScalef( 1 , randScale , 1 );
+            break;
+
     }
 
 
@@ -749,11 +783,18 @@ void drawGlowmap(){
     //        }
     //    }
 
+//    shader->SetUniform("glowMapping", 1.0);
+    shader->SetUniform("colorMapping", 1.0);
 
-    // Then draw the moon
-    //    drawCenter();
-    
-    drawScene();
+//    drawGround();
+    drawTiles();
+
+    shader->SetUniform("normalFlipping", 1.0);
+    drawCenter();
+    shader->SetUniform("normalFlipping", -1.0);
+
+    shader->SetUniform("glowMapping", -1.0);
+    glowMapDrawn = true;
 }
 
 // Display the output image from our vertex and fragment shaders
@@ -818,11 +859,9 @@ void DisplayCallback()
             GLuint attachments[1] = {GL_COLOR_ATTACHMENT0};
             glDrawBuffers(1,  attachments);
 
-            shader->SetUniform("glowMapping", 1.0);
             //needs to be only the lights
             drawGlowmap();
             glowMapDrawn = true;
-            shader->SetUniform("glowMapping", -1.0);
 
             // Draw vertical blur
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBOHorizBlur);
@@ -848,17 +887,18 @@ void DisplayCallback()
         }
 
         // drawglowmap onto quad
+//        glClearColor(0,0,0,0);
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        drawGlowmap();
+
+//        drawGlowMapDummy(fboHorizInd);
+//        drawGlowMapDummy(fboGlowInd);
 
         // Draw the actual scene
-
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         drawScene();
-
-//        drawGlowmap();
-//        drawGlowMapDummy(fboHorizInd);
-//        drawGlowMapDummy(fboGlowInd);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -867,8 +907,6 @@ void DisplayCallback()
         // needs to be drawn with alpha
         shader->SetUniform("blend", 1.0);
         drawGlowMapDummy(fboVertInd);
-
-
         glDisable(GL_BLEND);
 
     }

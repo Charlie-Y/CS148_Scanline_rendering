@@ -91,7 +91,7 @@ void SceneLights::setupSpireLights( STPoint3 spirePositions[], float spireY, int
 
         float *foo;
         foo = new float[4];
-        foo[0] = pos.x - 3;
+        foo[0] = pos.x - 5;
         foo[1] = pos.z ;
         foo[2] = pos.y / 1.08;
         foo[3] = 1.0f;
@@ -132,12 +132,13 @@ void SceneLights::setupLights()
         glLightfv(light, GL_AMBIENT,   ambientLights[i]);
         glLightfv(light, GL_DIFFUSE,   diffuseLights[i]);
 
-        if (light == GL_LIGHT0){
+//        if (light == GL_LIGHT0) || light == GL_LIGHT1){
+        if (light == GL_LIGHT0 || light == GL_LIGHT1){
             glLightf(light, GL_CONSTANT_ATTENUATION, 0.0);
-            glLightf(light, GL_LINEAR_ATTENUATION, 1.0/30.0);
+            glLightf(light, GL_LINEAR_ATTENUATION, 1.0/20.0);
         } else {
-            glLightf(light, GL_CONSTANT_ATTENUATION, 0.0);
-            glLightf(light, GL_LINEAR_ATTENUATION, 1/50.0);
+            glLightf(light, GL_CONSTANT_ATTENUATION, 0);
+            glLightf(light, GL_LINEAR_ATTENUATION, 1/30.0);
         }
     }
 
