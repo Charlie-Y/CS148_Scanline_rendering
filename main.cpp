@@ -9,8 +9,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
 //
 // Globals used by this application.
 // As a rule, globals are Evil, but this is a small application
@@ -30,12 +28,6 @@ std::string fragmentShader;
 std::string normalMap;
 std::string displacementMap;
 std::string meshOBJ;
-
-STImage   *surfaceNormImg;
-STTexture *surfaceNormTex;
-
-STImage   *surfaceDisplaceImg;
-STTexture *surfaceDisplaceTex;
 
 STShaderProgram *shader;
 
@@ -82,11 +74,11 @@ const std::string MOON_CYL_MESH_STR = "meshes/cylinder.obj";
 const std::string MOON_MESH_STR = "meshes/sphere_fine.obj";
 const std::string SKYBOX_MESH_STR = "meshes/sphere_fine.obj";
 
-const std::string TILE_MESH_STRS[] = {"box_1.obj", "box_2.obj", "box_3.obj", "box_4.obj", "spire_thick.obj", "spire_thin.obj", "spire_diag_zag.obj", "spire_flat_zag.obj"};
-const int TILE_MESH_CT = 8;
+const std::string TILE_MESH_STRS[] = {"box_1.obj", "box_2.obj", "box_3.obj", "box_4.obj", "spire_thick.obj", "spire_thin.obj", "spire_diag_zag.obj", "spire_flat_zag.obj", "plane.obj"};
+const int TILE_MESH_CT = 9;
 
 enum TileType { BASIC_TILE, FLYER_TILE, ROAD_TILE, SPIRE_TILE};
-enum TileMeshIndex { ROAD_TILE_MESH = 0, BLANK_TILE_MESH = 1, SPIRE_TILE_MESH = 2, FLYER_TILE_MESH = 3, SPIRE_1_MESH = 4, SPIRE_2_MESH = 5, SPIRE_3_MESH = 6, SPIRE_4_MESH = 7};
+enum TileMeshIndex { ROAD_TILE_MESH = 0, BLANK_TILE_MESH = 1, SPIRE_TILE_MESH = 2, FLYER_TILE_MESH = 3, SPIRE_1_MESH = 4, SPIRE_2_MESH = 5, SPIRE_3_MESH = 6, SPIRE_4_MESH = 7, DUMMY_MESH = 8};
 
 const int SPIRE_TYPES = 4;
 
@@ -154,6 +146,25 @@ float groundMeshScale = 120;
 STTriangleMesh* groundMesh = 0;
 float skyBoxScale = 100;
 STTriangleMesh* skyBox = 0;
+
+
+GLuint sceneBuffer, glowBuffer, blurBuffer;
+GLuint FBOGlow, FBOHorizBlur, FBOVertBlur;
+
+enum fboTexInd {fboGlowInd = 0,fboHorizInd = 1, fboVertInd = 2};
+
+bool glow = true;
+bool glowMapDrawn = false;
+
+// texture handlers
+GLuint texFBO[5];
+int fboTextureCount = 0;
+// renderbuffer handlers
+GLuint rb[2];
+
+GLuint prepareFBO(int w, int h, int colorCount);
+void printFramebufferInfo(GLenum target, GLuint fbo);
+
 
 /* ---------------------- Material Arrays ------------------------ */
 
@@ -275,9 +286,6 @@ bool isFlyerTile(int i){
 
 // Now are these tile positions or 3D locations...
 // 3D locations
-
-
-
 
 // Sets true or false
 void setupSpireStatuses(){
@@ -532,7 +540,6 @@ void repulseTiles(){
 }
 
 void setupScene()
-
 {
     setupSkyBox();
     setupTiles();
@@ -562,13 +569,6 @@ void Setup()
     SceneLights::setupSpireLights(SPIRE_POS, SPIRE_Y, SPIRE_COUNT);
     SceneLights::setupLights();
 
-
-    surfaceNormImg = new STImage(normalMap);
-    surfaceNormTex = new STTexture(surfaceNormImg);
-
-    surfaceDisplaceImg = new STImage(displacementMap);
-    surfaceDisplaceTex = new STTexture(surfaceDisplaceImg);
-
     shader = new STShaderProgram();
     shader->LoadVertexShader(vertexShader);
     shader->LoadFragmentShader(fragmentShader);
@@ -578,16 +578,24 @@ void Setup()
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
 
-//    STTriangleMesh::LoadObj(gTriangleMeshes,meshOBJ);
-//    gMassCenter=STTriangleMesh::GetMassCenter(gTriangleMeshes);
-//    std::cout<<"Mass Center: "<<gMassCenter<<std::endl;
-//    gBoundingBox=STTriangleMesh::GetBoundingBox(gTriangleMeshes);
-//    std::cout<<"Bounding Box: "<<gBoundingBox.first<<" - "<<gBoundingBox.second<<std::endl;
-
-//    for(unsigned int id=0;id<gTriangleMeshes.size();id++)
-//        gTriangleMeshes[id]->Recenter(gMassCenter);
-
     setupScene();
+
+    if (glow){
+
+        FBOGlow = prepareFBO(initialWindowX, initialWindowY, 1);
+        FBOHorizBlur = prepareFBO(initialWindowX, initialWindowY, 1);
+        FBOVertBlur = prepareFBO(initialWindowX, initialWindowY, 1);
+
+//        printFramebufferInfo(GL_DRAW_FRAMEBUFFER, FBOGlow);
+//        printFramebufferInfo(GL_DRAW_FRAMEBUFFER, FBOHorizBlur);
+
+        if (FBOGlow == 0){
+            printf("ERROR");
+        }
+//        glDrawBuffer(GL_NONE);
+//        glReadBuffer(GL_NONE);
+
+    }
 }
 
 
@@ -699,6 +707,40 @@ void drawGround(){
     }
 }
 
+void drawGlowMapDummy(int texId){
+    if (glow && glowMapDrawn){
+        auto mesh = gTriangleMeshes[DUMMY_MESH];
+        mesh->mSurfaceColorTex->mTexId = texFBO[texId];
+
+        shader->SetUniform("fullScreenQuad", 1.0);
+
+//        float scaleFactor = 20;
+//        glScalef(scaleFactor , scaleFactor, scaleFactor* 16.0/9.0);
+//        glRotatef(90, 0, 0, 1);
+//        glRotatef(90, 0, -1, 0);
+        mesh->Draw(false);
+        shader->SetUniform("fullScreenQuad", -1.0);
+        glPopMatrix();
+    }
+}
+
+void drawGlowmap(){
+    // Draw only the road tiles for now...
+    for (int i = 0; i < tilePositions.size(); i++){
+        TileType tileType = getTileType(i);
+        switch (tileType) {
+            case ROAD_TILE:
+            case SPIRE_TILE:
+                drawTileByType(tileType, i);
+                break;
+            default:
+                break;
+        }
+    }
+
+    // Then draw the moon
+    drawCenter();
+}
 
 void drawScene()
 {
@@ -706,24 +748,125 @@ void drawScene()
 
     shader->SetUniform("normalMapping", -1.0);
     shader->SetUniform("displacementMapping", -1.0);
+    shader->SetUniform("colorMapping", 1.0);
 
+    drawGround();
 
-//    for (int i = 0; i< 4; i++){
-//        STVector3 *shift = new STVector3((i % 2) * 0.5 / gWindowSizeX, (i / 2) * 0.5 / gWindowSizeY, 0);
+//    drawTiles();
+    shader->SetUniform("normalFlipping", 1.0);
+    drawCenter();
 
+    shader->SetUniform("normalFlipping", -1.0);
 
-        shader->SetUniform("colorMapping", 1.0);
-
-        drawGround();
-
-        drawTiles();
-        shader->SetUniform("normalFlipping", 1.0);
-        drawCenter();
-        
-        shader->SetUniform("normalFlipping", -1.0);
-//    }
 }
 
+// Display the output image from our vertex and fragment shaders
+//
+void DisplayCallback()
+{
+
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    SetUpAndRight();
+
+    gluLookAt(mPosition.x,mPosition.y,mPosition.z,
+              mLookAt.x,mLookAt.y,mLookAt.z,
+              mUp.x,mUp.y,mUp.z);
+
+    SceneLights::positionLights();
+
+
+    // Bind the textures we've loaded into openGl to
+    // the variable names we specify in the fragment
+    // shader.
+    shader->SetTexture("colorTex", 10);
+
+    // Invoke the shader.  Now OpenGL will call our
+    // shader programs on anything we draw.
+    shader->Bind();
+
+    // For the vertex shader...
+    shader->SetUniform("fullScreenQuad", -1.0);
+    shader->SetUniform("glowMapping", -1.0);
+    shader->SetUniform("blur", -1.0);
+    shader->SetUniform("blurV", -1.0);
+
+
+    if(!glow){
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Draw scene solid
+
+        drawScene();
+
+    } else {
+
+        // draw scene first
+
+
+//        STImage *img = new STImage(initialWindowX, initialWindowY);
+
+        // draw glowmap to FBP
+        if (!glowMapDrawn){
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBOGlow);
+
+            glClearColor(0,0,0,1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            // Set Drawing buffers
+            GLuint attachments[1] = {GL_COLOR_ATTACHMENT0};
+            glDrawBuffers(1,  attachments);
+
+            shader->SetUniform("glowMapping", 1.0);
+            drawGlowmap();
+            glowMapDrawn = true;
+            shader->SetUniform("glowMapping", -1.0);
+
+            // Draw vertical blur
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBOHorizBlur);
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            shader->SetUniform("blur", 1.0);
+            shader->SetUniform("blurV", 1.0);
+
+            drawGlowMapDummy(fboGlowInd);
+
+            // Draw horizontal blur
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBOVertBlur);
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            shader->SetUniform("blurV", -1.0);
+            drawGlowMapDummy(fboHorizInd);
+
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+
+        }
+
+        // drawglowmap onto quad
+
+        // Draw the actual scene
+
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        drawScene();
+//        drawGlowmap();
+//        drawGlowMapDummy(fboHorizInd);
+//        drawGlowMapDummy(fboGlowInd);
+        drawGlowMapDummy(fboVertInd);
+
+    }
+    
+    
+    shader->UnBind();
+    
+    
+    glutSwapBuffers();
+}
 
 
 void CleanUp()
@@ -774,54 +917,7 @@ void StrafeCamera(float delta_x, float delta_y)
 }
 
 //
-// Display the output image from our vertex and fragment shaders
-//
-void DisplayCallback()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    SetUpAndRight();
-
-    gluLookAt(mPosition.x,mPosition.y,mPosition.z,
-              mLookAt.x,mLookAt.y,mLookAt.z,
-              mUp.x,mUp.y,mUp.z);
-
-    SceneLights::positionLights();
-
-    // Texture 0: surface normal map
-    glActiveTexture(GL_TEXTURE0);
-    surfaceNormTex->Bind();
-
-    // Texture 1: surface normal map
-    glActiveTexture(GL_TEXTURE1);
-    surfaceDisplaceTex->Bind();
-
-    // Bind the textures we've loaded into openGl to
-    // the variable names we specify in the fragment
-    // shader.
-    shader->SetTexture("normalTex", 0);
-    shader->SetTexture("displacementTex", 1);
-    shader->SetTexture("colorTex", 2);
-
-    // Invoke the shader.  Now OpenGL will call our
-    // shader programs on anything we draw.
-    shader->Bind(); 
-
-    drawScene();
-
-    shader->UnBind();
-
-    glActiveTexture(GL_TEXTURE0);
-    surfaceNormTex->UnBind();
-
-    glActiveTexture(GL_TEXTURE1);
-    surfaceDisplaceTex->UnBind();
-
-    glutSwapBuffers();
-}
 
 //
 // Reshape the window and record the size so
@@ -991,6 +1087,142 @@ void MouseMotionCallback(int x, int y)
         gPreviousMouseY = y;
     }
 
+}
+
+
+GLuint createRGBATexture(int w, int h) {
+
+    GLuint tex2;
+
+    glGenTextures(1, &tex2);
+
+    glBindTexture(GL_TEXTURE_2D, tex2);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 w,
+                 h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+//    int max[1] = {0};
+//    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, max);
+//    std::cout << max[0]<< std::endl;
+
+    return(tex2);
+}
+
+GLuint createDepthTexture(int w, int h) {
+
+    GLuint tex;
+
+    glGenTextures(1, &tex);
+
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+//    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+//    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 w,
+                 h, 
+                 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+                 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return(tex);
+}
+
+void printFramebufferInfo(GLenum target, GLuint fbo) {
+
+    glBindFramebuffer(target,fbo);
+    int res;
+
+    GLint buffer;
+    int i = 0;
+    do {
+        glGetIntegerv(GL_DRAW_BUFFER0+i, &buffer);
+
+        if (buffer != GL_NONE) {
+
+            printf("Shader Output Location %d - color attachment %d\n", i, buffer - GL_COLOR_ATTACHMENT0);
+
+            glGetFramebufferAttachmentParameteriv(target, buffer, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &res);
+            printf("\tAttachment Type: %s\n", res==GL_TEXTURE?"Texture":"Render Buffer");
+            glGetFramebufferAttachmentParameteriv(target, buffer, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &res);
+            printf("\tAttachment object name: %d\n",res);
+        }
+        ++i;
+        
+    } while (buffer != GL_NONE);
+}
+
+GLuint prepareFBO(int w, int h, int colorCount) {
+
+    GLuint fbo;
+    // Generate one frame buffer
+    glGenFramebuffers(1, &fbo);
+    // bind it
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+
+    // attach textures for colors
+    texFBO[fboTextureCount] = createRGBATexture(w,h);
+    glFramebufferTextureEXT(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texFBO[fboTextureCount], 0);
+    fboTextureCount++;
+
+    GLuint depthFBO;
+    depthFBO = createDepthTexture(w,h);
+    glFramebufferTextureEXT(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthFBO, 0);
+
+    // check if everything is OK
+    GLenum e = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+    switch (e) {
+
+        case GL_FRAMEBUFFER_UNDEFINED:
+            printf("FBO Undefined\n");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT :
+            printf("FBO Incomplete Attachment\n");
+            break;
+
+        case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER :
+            printf("FBO Incomplete Draw Buffer\n");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT :
+            printf("FBO Missing Attachment\n");
+            break;
+        case GL_FRAMEBUFFER_UNSUPPORTED :
+            printf("FBO Unsupported\n");
+            break;
+        case GL_FRAMEBUFFER_COMPLETE:
+            printf("FBO OK\n");
+            break;
+        default:
+            printf("FBO Problem?\n");
+    }
+
+
+    if (e != GL_FRAMEBUFFER_COMPLETE)
+        return (0);
+    // unbind fbo
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    
+    //	printFramebuffersInfo(fbo);
+    
+    return fbo;
 }
 
 void usage()
